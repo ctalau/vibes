@@ -1,5 +1,5 @@
-const { McpServer } = require('@modelcontextprotocol/sdk/dist/cjs/server/mcp.js');
-const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js');
+const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
+const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
 let toReqRes;
 let toFetchResponse;
 const { z } = require('zod');
@@ -49,7 +49,7 @@ function buildServer() {
   return server;
 }
 
-module.exports = async function handler(req) {
+exports.handler = async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
@@ -70,4 +70,4 @@ module.exports = async function handler(req) {
   return toFetchResponse(nodeRes);
 };
 
-module.exports.config = { path: '/mcp' };
+exports.config = { path: '/mcp' };
