@@ -1,0 +1,24 @@
+{
+  "name": "vibes",
+  "version": "1.0.0",
+  "description": "Vibe coding projects ====================",
+  "main": "fetch.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.16.0",
+    "fetch-to-node": "^2.1.0",
+    "https-proxy-agent": "^7.0.6",
+    "node-fetch": "^3.3.2",
+    "proxy-agent": "^6.5.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
