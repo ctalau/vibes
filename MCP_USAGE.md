@@ -27,3 +27,14 @@ run();
 ```
 
 The `search` function returns an array of objects with `id`, `title`, `text` and `url` fields. The `id` should be passed to `fetch` to retrieve the full HTML for that result. `fetch` returns an object with the same fields plus an empty `metadata` object.
+
+## Netlify MCP endpoint
+
+After installing dependencies (`npm install`) you can run a local MCP server with:
+
+```bash
+npx netlify dev
+```
+
+This exposes the tools via a JSON-RPC endpoint at `http://localhost:8888/mcp`.
+Deploying to Netlify will make the same endpoint available at `https://<site>.netlify.app/mcp`.
