@@ -1,0 +1,66 @@
+const { McpServer } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js');
+const { StreamableHTTPServerTransport } = require('../../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js');
+const { toReqRes, toFetchResponse } = require('fetch-to-node');
+const { z } = require('zod');
+const search = require('../../search');
+const fetchPage = require('../../fetch');
+
+function buildServer() {
+  const server = new McpServer({
+    name: 'Docs MCP',
+    version: '1.0.0',
+    description: 'Docs search & HTML fetcher for AI agents'
+  });
+
+  server.tool(
+    'search',
+    'Full-text keyword search over the documentation index',
+    {
+      query: z.string().describe('Search keywords')
+    },
+    async ({ query }) => ({
+      content: [
+        {
+          type: 'json',
+          json: search(query)
+        }
+      ]
+    })
+  );
+
+  server.tool(
+    'fetchPage',
+    'Return raw HTML of a doc page given its relative path',
+    {
+      path: z.string().regex(/^\/?[\w\-.\/]+\.html$/)
+    },
+    async ({ path }) => ({
+      content: [
+        {
+          type: 'text',
+          mimeType: 'text/html',
+          text: (await fetchPage(path)).text
+        }
+      ]
+    })
+  );
+
+  return server;
+}
+
+module.exports = async function handler(req) {
+  if (req.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+
+  const { req: nodeReq, res: nodeRes } = toReqRes(req);
+  const server = buildServer();
+  const transport = new StreamableHTTPServerTransport();
+
+  await server.connect(transport);
+  await transport.handleRequest(nodeReq, nodeRes, await req.json());
+
+  return toFetchResponse(nodeRes);
+};
+
+module.exports.config = { path: '/mcp' };
