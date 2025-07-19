@@ -1,6 +1,6 @@
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
-import { addNumbers } from "@/src/tools/add";
+import { addNumbers } from "@/tools/add";
 
 /**
  * createMcpHandler wires the MCP server into a Next.js route.
@@ -25,7 +25,7 @@ const handler = createMcpHandler(
   },
 
   /*   2️⃣ optional MCP-server metadata   */
-  { name: "nextjs-add-server", version: "1.0.0" },
+  { serverInfo: { name: "nextjs-add-server", version: "1.0.0" } },
 
   /*   3️⃣ adapter config for Vercel   */
   {
