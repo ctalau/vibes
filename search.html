@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Search Example</title>
+</head>
+<body>
+  <input type="text" id="query" value="structure autocorrect" />
+  <button id="searchBtn">Search</button>
+  <pre id="results"></pre>
+
+  <script src="keywords.js"></script>
+  <script src="htmlFileInfoList.js"></script>
+  <script src="link-to-parent.js"></script>
+  <script src="stopwords.js"></script>
+  <script src="index-1.js"></script>
+  <script src="index-2.js"></script>
+  <script src="index-3.js"></script>
+  <script src="index-main.js"></script>
+  <script>
+    function search(query) {
+      query = query.toLowerCase();
+      var tokens = query.split(/\s+/).filter(function(t){
+        return t && index.stopWords.indexOf(t) === -1;
+      });
+      var scores = {};
+      tokens.forEach(function(token){
+        var entry = index.w[token];
+        if (!entry) return;
+        entry.split(',').forEach(function(seg){
+          var parts = seg.split('*');
+          var id = parseInt(parts[0], 10);
+          var sc = parseInt(parts[1], 10) || 0;
+          if (!scores[id]) scores[id] = 0;
+          scores[id] += sc;
+        });
+      });
+      return Object.keys(scores).sort(function(a,b){
+        return scores[b] - scores[a];
+      }).map(function(id){
+        var info = index.fil[id];
+        var parts = info.split('@@@');
+        return {path: parts[0], title: parts[1], desc: parts[2], score: scores[id]};
+      });
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', function(){
+      var q = document.getElementById('query').value;
+      var res = search(q);
+      document.getElementById('results').textContent = JSON.stringify(res, null, 2);
+    });
+  </script>
+</body>
+</html>
+
