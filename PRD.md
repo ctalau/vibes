@@ -12,7 +12,7 @@
 * **Directory home page** that lists all utilities, supports search (name/description/tags) and user favorites.
 * **Google login** via Auth.js; **only allow approved users** (allowlist of emails). No public access.
 * **Shared UI/design system** for cohesive visuals and zero duplicated components.
-* **Neon (Postgres) database** for users, apps metadata, favorites, and allowlist.
+* **Neon (Postgres) database** for users, favorites, and allowlist.
 * **AI calls** routed through **Vercel AI Gateway** (primary) and **OpenAI** (fallback) with a single helper.
 * Each sub‑app lives in its own folder and ships with **PRD.md** and **plan.md**, plus its own **AGENTS.md**.
 * Be **frugal**: small bundle, minimal server compute, streaming where useful, inexpensive DB queries.
@@ -37,17 +37,17 @@
 ## 3) Information Architecture
 
 * **Home (/):** Directory of apps, global search, filters by tag, favorites section.
-* **App detail (/apps/[slug]):** About card (from local `meta.ts` + DB), quick links to its PRD/plan/AGENTS, Launch button.
+* **App detail (/apps/[slug]):** About card (from local `meta.ts`), quick links to its PRD/plan/AGENTS, Launch button.
 * **App runtime (/tools/[slug]):** The actual sub‑app UI.
 * **Account (/account):** Profile, favorites management.
-* **Admin (/admin):** Allowlist management, app registry CRUD (owner only).
+* **Admin (/admin):** Allowlist management (owner only).
 
 ## 4) Functional Requirements
 
 ### 4.1 Directory & Search
 
 * List all apps with name, short description, tags, created/updated timestamps.
-* Search across name + description + tags (case‑insensitive) with Postgres full‑text search and a trigram fallback.
+* Search across name + description + tags (case‑insensitive) over the static list.
 * Tag filter, sort by: most used, most recent, alphabetical.
 * Favorite/unfavorite from card and detail view.
 * Keyboard nav: ⌘/Ctrl‑K to open quick search.
@@ -70,7 +70,7 @@
   * `page.tsx` (or a route group) for `/tools/<slug>`
   * `meta.ts` (name, description, tags, icon, feature flags)
   * `PRD.md`, `plan.md`, and `AGENTS.md`
-* Central registry table maps `<slug>` to metadata; local `meta.ts` is the source of truth committed to Git; a sync script populates DB for search.
+* `apps/*/meta.ts` descriptors are read at build time to produce a static app list; favorites persist in DB keyed by app slug.
 
 ### 4.5 Shared Design System
 
@@ -123,34 +123,19 @@ CREATE TABLE allowed_users (
   added_at TIMESTAMPTZ DEFAULT now()
 );
 
--- App registry
-CREATE TABLE apps (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL,
-  tags TEXT[] DEFAULT '{}',
-  icon TEXT, -- optional emoji or icon key
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  search TSVECTOR
-);
-CREATE INDEX apps_search_idx ON apps USING GIN (search);
-CREATE INDEX apps_tags_idx   ON apps USING GIN (tags);
-
 -- Favorites (per-user)
 CREATE TABLE favorites (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  app_id  UUID REFERENCES apps(id)  ON DELETE CASCADE,
+  app_slug TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY (user_id, app_id)
+  PRIMARY KEY (user_id, app_slug)
 );
 
 -- Simple usage counters (optional)
 CREATE TABLE app_usage (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  app_id  UUID REFERENCES apps(id)  ON DELETE CASCADE,
+  app_slug TEXT NOT NULL,
   action TEXT NOT NULL, -- 'open'|'run'|'ai_call'
   meta JSONB,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -160,17 +145,12 @@ CREATE TABLE app_usage (
 **Search vector maintenance** (run on insert/update):
 
 ```sql
-UPDATE apps SET search =
-  setweight(to_tsvector('simple', coalesce(name,'')), 'A') ||
-  setweight(to_tsvector('simple', coalesce(description,'')), 'B') ||
-  setweight(to_tsvector('simple', array_to_string(tags, ' ')), 'C')
-WHERE id = $1;
+-- no search vector needed; app list is static at build time
 ```
 
 ## 7) API Surface (Route Handlers / Server Actions)
 
 * `GET /api/apps?query=&tags=&sort=` → list/search apps
-* `POST /api/apps/sync` (admin) → read local `apps/*/meta.ts` and upsert DB
 * `POST /api/favorites` / `DELETE /api/favorites` → toggle favorite
 * `GET /api/me` → current user
 * `GET/POST /api/admin/allowlist` → CRUD allowlist (owner only)
