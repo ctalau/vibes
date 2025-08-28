@@ -1,6 +1,10 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { encode as encodeJwt } from "next-auth/jwt";
+import { PRODUCTION_ORIGIN } from "./config";
+
+// Ensure Google OAuth redirect URI always uses the production domain
+process.env.NEXTAUTH_URL = PRODUCTION_ORIGIN;
 
 const allowedEmails = (process.env.ALLOWED_EMAILS || "")
   .split(",")
