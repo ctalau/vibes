@@ -150,10 +150,25 @@
 
 ## 8) Auth Flow (Auth.js + Google)
 
-1. User hits protected route → redirected to Google.
+### Production
+
+1. User hits a protected route → redirected to Google.
 2. On callback, email is checked against `allowed_users`.
 3. If allowed + active → create or upsert `users` record; establish JWT session.
 4. Middleware enforces allowlist on all `/`, `/tools/*`, and `/api/*` except `/_next/*` and `/api/auth/*`.
+
+### Preview deployments
+
+Preview branches cannot complete the OAuth handshake directly because Google only accepts pre‑registered redirect URLs. The preview flow proxies authentication through the production domain:
+
+1. A preview request without a `session` cookie is redirected to the production domain’s `/api/auth/signin?from=<previewURL>`.
+2. Production’s sign‑in handler validates `from`, encodes `{csrfToken, from}` into the OAuth `state`, and continues the Google redirect.
+3. After login, production issues a JWT session and sends the user to `/auth/relay?from=<previewURL>#token=<jwt>`.
+4. The relay page forwards to the preview URL with the token in the hash. A small bootstrap script on preview branches reads `#token`, stores it as a `session` cookie, and clears the hash.
+5. Subsequent preview requests present the `session` cookie; middleware verifies the JWT locally using the shared `AUTH_SECRET`. Missing or invalid cookies repeat Step 1.
+6. Sign‑outs on preview redirect to `https://<prod-domain>/api/auth/signout?from=<previewURL>` so production clears its cookie before returning to the preview page.
+
+Preview and production share `NEXTAUTH_URL` pointing to the production host and the same `AUTH_SECRET` so tokens are valid in both environments.
 
 **Required env vars** (examples):
 
