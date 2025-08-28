@@ -37,6 +37,7 @@ export default async function Home({ searchParams }: HomeProps) {
               {email && (
                 <form action={toggleFavoriteAction}>
                   <input type="hidden" name="slug" value={app.slug} />
+                  <input type="hidden" name="q" value={q} />
                   <button
                     type="submit"
                     aria-label={
