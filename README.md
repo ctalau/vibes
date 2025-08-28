@@ -22,3 +22,23 @@ Generate new migrations after schema changes with:
 ```bash
 pnpm db:generate
 ```
+
+## Preview Authentication
+
+Preview deployments cannot be registered as Google OAuth redirect URLs. All
+sign-ins and sign-outs on preview branches are redirected to the production
+domain (`https://ctalau-vibe-coding.vercel.app`) with a `from` parameter
+containing the originating preview URL. After a successful login, production
+redirects to the preview with a short-lived JWT which the preview branch stores
+in a `session` cookie.
+
+To log out, preview branches send users to
+`https://ctalau-vibe-coding.vercel.app/api/auth/signout?from=<previewURL>` so
+the production cookie is cleared before returning to the preview, where the
+client script deletes its own `session` cookie.
+
+### Required Environment
+
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+- `AUTH_SECRET` shared by production and preview builds
+- `NEXTAUTH_URL` set to `https://ctalau-vibe-coding.vercel.app`
