@@ -1,16 +1,21 @@
-import { and, eq } from "drizzle-orm";
+import { ObjectId } from "mongodb";
 import { db } from "./db";
-import { favorites, users } from "./schema";
 import { allApps } from "./apps";
+import type { User, Favorite } from "./schema";
 
 export async function getOrCreateUserByEmail(email: string) {
-  const [existing] = await db.select().from(users).where(eq(users.email, email));
+  const users = db.collection<User>("users");
+  const existing = await users.findOne({ email });
   if (existing) return existing;
-  const [inserted] = await db
-    .insert(users)
-    .values({ email })
-    .returning();
-  return inserted;
+  const newUser: User = {
+    _id: new ObjectId(),
+    email,
+    role: "member",
+    favorites: [],
+    createdAt: new Date(),
+  };
+  await users.insertOne(newUser);
+  return newUser;
 }
 
 export async function getApps(search: string, email?: string) {
@@ -28,28 +33,27 @@ export async function getApps(search: string, email?: string) {
   if (!email) return list.map((a) => ({ ...a, favorite: false }));
 
   const user = await getOrCreateUserByEmail(email);
-  const favRows = await db
-    .select({ appSlug: favorites.appSlug })
-    .from(favorites)
-    .where(eq(favorites.userId, user.id));
-  const favSet = new Set(favRows.map((f) => f.appSlug));
+  const favSet = new Set((user.favorites ?? []).map((f) => f.appSlug));
   const withFav = list.map((a) => ({ ...a, favorite: favSet.has(a.slug) }));
   withFav.sort((a, b) => Number(b.favorite) - Number(a.favorite));
   return withFav;
 }
 
 export async function toggleFavorite(appSlug: string, email: string) {
+  const users = db.collection<User>("users");
   const user = await getOrCreateUserByEmail(email);
-  const [existing] = await db
-    .select()
-    .from(favorites)
-    .where(and(eq(favorites.userId, user.id), eq(favorites.appSlug, appSlug)));
+  const exists = user.favorites?.some((f) => f.appSlug === appSlug);
 
-  if (existing) {
-    await db
-      .delete(favorites)
-      .where(and(eq(favorites.userId, user.id), eq(favorites.appSlug, appSlug)));
+  if (exists) {
+    await users.updateOne(
+      { _id: user._id },
+      { $pull: { favorites: { appSlug } } },
+    );
   } else {
-    await db.insert(favorites).values({ userId: user.id, appSlug });
+    const fav: Favorite = { appSlug, createdAt: new Date() };
+    await users.updateOne(
+      { _id: user._id },
+      { $push: { favorites: fav } },
+    );
   }
 }

@@ -7,21 +7,11 @@ Manage OAuth client credentials for this project via the [Google Cloud Console](
 
 ## Database
 
-This project uses [Neon](https://neon.tech) for Postgres and [Drizzle ORM](https://orm.drizzle.team).
+This project uses MongoDB.
 
-1. Create a Neon project and database.
-2. Copy the connection string and set it as `DATABASE_URL` in your `.env` file.
-3. Apply migrations with:
-
-   ```bash
-   pnpm db:migrate
-   ```
-
-Generate new migrations after schema changes with:
-
-```bash
-pnpm db:generate
-```
+1. Create a MongoDB instance.
+2. Set the connection string as `MONGODB_URI` in your `.env` file.
+3. Collections are created on demand; no additional setup is required.
 
 ## Preview Authentication
 
