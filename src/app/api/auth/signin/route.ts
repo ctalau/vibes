@@ -17,13 +17,12 @@ export async function GET(req: NextRequest) {
   const callbackUrl = from
     ? `${req.nextUrl.origin}/auth/relay?from=${encodeURIComponent(from)}`
     : req.nextUrl.origin;
-  const res = await signIn("google", {
-    request: req,
+  const location = await signIn("google", {
     redirect: false,
-    callbackUrl,
+    redirectTo: callbackUrl,
   });
-  const location = res.headers.get("location");
-  if (!location) return res;
+  if (!location)
+    return NextResponse.json({ error: "Sign in failed" }, { status: 500 });
   const url = new URL(location);
   const csrfState = url.searchParams.get("state") ?? "";
   const state = Buffer.from(
