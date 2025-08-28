@@ -89,11 +89,10 @@ This document defines how autonomous or semi‑autonomous AI agents collaborate 
 │  ├─ admin/*               (allowlist, registry)
 │  └─ api/*                 (apps, favorites, ai, admin)
 ├─ src/lib/
-│  ├─ db.ts (Neon client + ORM)
+│  ├─ db.ts (MongoDB client)
 │  ├─ auth.ts (Auth.js config)
 │  ├─ ai.ts (Gateway + provider fallback)
 │  └─ registry.ts (scan apps/*/meta.ts, sync helpers)
-├─ prisma/ or drizzle/ (choose one; see below)
 ├─ .env.example
 └─ docs/ (top‑level docs including PRD.md and this file)
 ```
@@ -102,7 +101,7 @@ This document defines how autonomous or semi‑autonomous AI agents collaborate 
 
 * **Framework:** Next.js (App Router). RSC + Server Actions.
 * **Styling:** Tailwind + shadcn/ui (Radix). Single theme file and tokens.
-* **DB:** Neon Postgres with **Drizzle ORM** (lightweight, SQL‑first) — migrations checked into repo.
+* **DB:** MongoDB with the official driver — schema defined in code.
 * **Auth:** Auth.js (Google provider). JWT sessions.
 * **AI:** Central helper that talks to Vercel AI Gateway; provider can be overridden per app.
 
@@ -160,7 +159,7 @@ Build pages for apps/<slug> using shared components from src/ui.
 **Backend Engineer Agent Prompt (per sub‑app)**
 
 ```
-Implement required API handlers and DB schema using Drizzle + Neon.
+Implement required API handlers and database operations using the MongoDB client.
 - Validate input on server
 - Use server actions where convenient
 - Add indexes for any new search fields
@@ -237,7 +236,7 @@ Owner: <name or email>
 
 * Node 20 on Vercel.
 * Edge runtime for public GET routes; Node for AI endpoints.
-* Drizzle migrations via `pnpm drizzle-kit`.
+* Database tooling: MongoDB official driver; no ORM or migrations.
 * Linting with ESLint + Biome (optional) and Prettier.
 
 **How agents decide models**

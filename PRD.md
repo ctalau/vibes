@@ -12,7 +12,7 @@
 * **Directory home page** that lists all utilities, supports search (name/description/tags) and user favorites.
 * **Google login** via Auth.js; **only allow approved users** (allowlist of emails). No public access.
 * **Shared UI/design system** for cohesive visuals and zero duplicated components.
-* **Neon (Postgres) database** for users, favorites, and allowlist.
+* **MongoDB database** for users (with embedded favorites) and allowlist.
 * **AI calls** routed through **Vercel AI Gateway** (primary) and **OpenAI** (fallback) with a single helper.
 * Each sub‑app lives in its own folder and ships with **PRD.md** and **plan.md**, plus its own **AGENTS.md**.
 * Be **frugal**: small bundle, minimal server compute, streaming where useful, inexpensive DB queries.
@@ -31,7 +31,7 @@
 **Auth & ACL.**
 
 * Google OAuth via Auth.js.
-* A Neon table (or env var for bootstrap) holds **allowed emails**. Login succeeds only if email is found and active.
+* A MongoDB collection (or env var for bootstrap) holds **allowed emails**. Login succeeds only if email is found and active.
 * Middleware short‑circuits all routes for unauthenticated or unapproved users.
 
 ## 3) Information Architecture
@@ -54,7 +54,7 @@
 
 ### 4.2 Favorites
 
-* Persist per‑user favorites in Neon.
+* Persist per‑user favorites on the user document keyed by app slug.
 * Favorites appear in a pinned section and sort to the top of results.
 
 ### 4.3 Authentication & Authorization
@@ -101,51 +101,43 @@
 * **Privacy:** No analytics beyond self‑hosted basic counters unless opted in.
 * **Reliability:** No background workers; idempotent APIs; safe DB migrations.
 
-## 6) Data Model (Neon / Postgres)
+## 6) Data Model (MongoDB)
 
-```sql
--- Users (mirrors Auth.js user basics, created on first approved login)
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  name TEXT,
-  image TEXT,
-  role TEXT DEFAULT 'member', -- 'owner'|'member'
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+```json
+// Users (mirrors Auth.js user basics, created on first approved login)
+{
+  "_id": "uuid",
+  "email": "string",
+  "name": "string?",
+  "image": "string?",
+  "role": "owner|member",
+  "favorites": [{ "appSlug": "string", "createdAt": "timestamp" }],
+  "createdAt": "timestamp"
+}
 
--- Allowlist (who can log in at all)
-CREATE TABLE allowed_users (
-  email TEXT PRIMARY KEY,
-  role TEXT DEFAULT 'member',
-  active BOOLEAN DEFAULT true,
-  added_by TEXT,
-  added_at TIMESTAMPTZ DEFAULT now()
-);
+// Allowlist (who can log in at all)
+{
+  "email": "string",
+  "role": "owner|member",
+  "active": true,
+  "addedBy": "string?",
+  "addedAt": "timestamp"
+}
 
--- Favorites (per-user)
-CREATE TABLE favorites (
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  app_slug TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY (user_id, app_slug)
-);
-
--- Simple usage counters (optional)
-CREATE TABLE app_usage (
-  id BIGSERIAL PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  app_slug TEXT NOT NULL,
-  action TEXT NOT NULL, -- 'open'|'run'|'ai_call'
-  meta JSONB,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+// Simple usage counters (optional)
+{
+  "userId": "uuid",
+  "appSlug": "string",
+  "action": "open|run|ai_call",
+  "meta": {},
+  "createdAt": "timestamp"
+}
 ```
 
-**Search vector maintenance** (run on insert/update):
+**Search vector maintenance**
 
-```sql
--- no search vector needed; app list is static at build time
+```json
+// no search vector needed; app list is static at build time
 ```
 
 ## 7) API Surface (Route Handlers / Server Actions)
@@ -169,7 +161,7 @@ CREATE TABLE app_usage (
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 AUTH_SECRET=
-DATABASE_URL=postgres://...
+MONGODB_URI=
 AI_GATEWAY_URL=
 AI_GATEWAY_API_KEY=
 OPENAI_API_KEY=
