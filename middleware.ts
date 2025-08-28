@@ -5,7 +5,14 @@ import { PREVIEW_HOST_PATTERN, PRODUCTION_ORIGIN } from "./src/lib/config";
 
 export default auth(async (req) => {
   const url = req.nextUrl;
-  if (PREVIEW_HOST_PATTERN.test(url.host)) {
+  const isPreview = PREVIEW_HOST_PATTERN.test(url.host);
+  console.warn("[middleware] request", {
+    host: url.host,
+    isPreview,
+    hasSession: !!req.cookies.get("session"),
+    href: url.href,
+  });
+  if (isPreview) {
     const token = req.cookies.get("session")?.value;
     if (token) {
       try {
@@ -15,12 +22,14 @@ export default auth(async (req) => {
     }
     const signInUrl = new URL(`${PRODUCTION_ORIGIN}/api/auth/signin`);
     signInUrl.searchParams.set("from", url.href);
+    console.warn("[middleware] redirecting to prod signin", signInUrl.toString());
     return NextResponse.redirect(signInUrl);
   }
 
   if (!(req as any).auth) {
     const signInUrl = new URL("/api/auth/signin", url);
     signInUrl.searchParams.set("callbackUrl", url.href);
+    console.warn("[middleware] redirecting to local signin", signInUrl.toString());
     return NextResponse.redirect(signInUrl);
   }
 });
