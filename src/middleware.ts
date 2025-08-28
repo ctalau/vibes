@@ -1,7 +1,7 @@
-import { auth } from "./src/lib/auth";
+import { auth } from "./lib/auth";
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { PREVIEW_HOST_PATTERN, PRODUCTION_ORIGIN } from "./src/lib/config";
+import { PREVIEW_HOST_PATTERN, PRODUCTION_ORIGIN } from "./lib/config";
 
 export default auth(async (req) => {
   const url = req.nextUrl;
