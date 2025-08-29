@@ -15,17 +15,12 @@ This project uses MongoDB.
 
 ## Preview Authentication
 
-Preview deployments cannot be registered as Google OAuth redirect URLs. All
-sign-ins and sign-outs on preview branches are redirected to the production
-domain (`https://ctalau-vibe-coding.vercel.app`) with a `from` parameter
-containing the originating preview URL. After a successful login, production
-redirects to the preview with a short-lived JWT which the preview branch stores
-in a `session` cookie.
-
-To log out, preview branches send users to
-`https://ctalau-vibe-coding.vercel.app/api/auth/signout?from=<previewURL>` so
-the production cookie is cleared before returning to the preview, where the
-client script deletes its own `session` cookie.
+Preview deployments cannot be registered as Google OAuth redirect URLs. Preview
+requests without a session are sent through the normal sign-in route, which
+starts Google OAuth using the production domain as the callback and encodes the
+preview host in the `state`. When Google redirects back to production, middleware
+there forwards the callback to the preview deployment to complete the login and
+set the session cookie locally.
 
 ### Required Environment
 
