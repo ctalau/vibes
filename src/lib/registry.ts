@@ -1,9 +1,10 @@
 import { ObjectId } from "mongodb";
-import { db } from "./db";
+import { getDb } from "./db";
 import { allApps } from "./apps";
 import type { User, Favorite } from "./schema";
 
 export async function getOrCreateUserByEmail(email: string) {
+  const db = await getDb();
   const users = db.collection<User>("users");
   const existing = await users.findOne({ email });
   if (existing) return existing;
@@ -40,6 +41,7 @@ export async function getApps(search: string, email?: string) {
 }
 
 export async function toggleFavorite(appSlug: string, email: string) {
+  const db = await getDb();
   const users = db.collection<User>("users");
   const user = await getOrCreateUserByEmail(email);
   const exists = user.favorites?.some((f) => f.appSlug === appSlug);

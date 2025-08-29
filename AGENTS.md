@@ -59,7 +59,7 @@ This document defines how autonomous or semi‑autonomous AI agents collaborate 
 * **Branching.** `main` (protected). Features: `feat/<area>-<short>`.
 * **Commits.** Conventional style: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`.
 * **PR template.** Checklist includes: linked issue, screenshots, a11y notes, perf notes, and risk.
-* **CI (lightweight).** Typecheck, lint, build, run minimal tests. Block on failing checks.
+* **CI (lightweight).** Typecheck, lint, build, run minimal tests. Block on failing checks. Run build as `CI=1 npm run build`.
 * **Ownership.** Each sub‑app names an Owner in its `AGENTS.md`.
 
 ## 3) Repository Layout (High Level)
