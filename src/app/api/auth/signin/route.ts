@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signIn } from "../../../../lib/auth";
-import { PREVIEW_HOST_PATTERN } from "../../../../lib/config";
+import { PREVIEW_HOST_PATTERN,PRODUCTION_HOST } from "../../../../lib/config";
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl;
@@ -32,7 +32,7 @@ async function handlePreviewDeployment(callbackUrl: string) {
   // NextAuth uses NEXTAUTH_URL for the OAuth callback
   const location = await signIn("google", {
     redirect: false,
-    redirectTo: undefined,
+    redirectTo: 'https://' + PRODUCTION_HOST + '/api/auth/callback',
   });
 
   if (!location) {
