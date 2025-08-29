@@ -4,6 +4,12 @@ import { PREVIEW_HOST_PATTERN } from "./lib/config";
 
 const withAuth = auth((req) => {
   const url = req.nextUrl;
+  
+  // Skip auth check for auth routes
+  if (url.pathname.startsWith("/api/auth/")) {
+    return NextResponse.next();
+  }
+  
   if (!req.auth) {
     const signInUrl = new URL("/api/auth/signin", url);
     signInUrl.searchParams.set("callbackUrl", url.href);
@@ -40,4 +46,3 @@ export default function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
-
