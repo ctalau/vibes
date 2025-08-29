@@ -159,14 +159,13 @@
 
 ### Preview deployments
 
-Preview branches cannot complete the OAuth handshake directly because Google only accepts pre‑registered redirect URLs. The preview flow proxies authentication through the production domain:
+Preview branches cannot complete the OAuth handshake directly because Google only accepts pre‑registered redirect URLs. Preview deployments use the production domain as the OAuth callback:
 
-1. A preview request without a `session` cookie is redirected to the production domain’s `/api/auth/signin?from=<previewURL>`.
-2. Production’s sign‑in handler validates `from`, encodes `{csrfToken, from}` into the OAuth `state`, and continues the Google redirect.
-3. After login, production issues a JWT session and sends the user to `/auth/relay?from=<previewURL>`.
-4. The relay page forwards to the preview URL with the token as `?token=<jwt>`. Preview middleware reads `token`, sets it as a `session` cookie, and redirects without it.
-5. Subsequent preview requests present the `session` cookie; middleware verifies the JWT locally using the shared `AUTH_SECRET`. Missing or invalid cookies repeat Step 1.
-6. Sign‑outs on preview redirect to `https://<prod-domain>/api/auth/signout?from=<previewURL>` so production clears its cookie before returning to the preview page.
+1. A preview request without a session is redirected to its own `/api/auth/signin?callbackUrl=<previewURL>` route.
+2. The sign‑in handler starts the Google OAuth flow using the production `NEXTAUTH_URL` as the callback and embeds the preview host in the OAuth `state`.
+3. Google redirects to the production `/api/auth/callback` endpoint. Middleware on production reads the `state` and forwards the request to the preview host with the same path and query.
+4. The preview deployment receives the callback, completes the login normally, and sets its own session cookie.
+5. Subsequent preview requests present the session cookie and are authorized locally.
 
 Preview and production share `NEXTAUTH_URL` pointing to the production host and the same `AUTH_SECRET` so tokens are valid in both environments.
 
