@@ -34,7 +34,7 @@ async function handlePreviewDeployment(callbackUrl: string) {
     redirect: false,
     redirectTo: 'https://' + PRODUCTION_HOST + '/api/auth/callback',
   });
-
+  console.log('google url before', location);
   if (!location) {
     return NextResponse.json({ error: "Sign in failed" }, { status: 500 });
   }
@@ -51,6 +51,6 @@ async function handlePreviewDeployment(callbackUrl: string) {
   ).toString("base64url");
   
   redirectUrl.searchParams.set("state", encodedState);
-
+  console.log('google url after', redirectUrl);
   return NextResponse.redirect(redirectUrl);
 }
