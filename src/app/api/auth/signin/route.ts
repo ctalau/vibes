@@ -5,35 +5,52 @@ import { PREVIEW_HOST_PATTERN } from "../../../../lib/config";
 export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const callbackUrl = url.searchParams.get("callbackUrl") ?? url.origin;
+  const isPreviewDeployment = PREVIEW_HOST_PATTERN.test(url.host);
 
-  // For preview deployments, don't pass the preview host as redirectTo
-  // This ensures NextAuth uses NEXTAUTH_URL for the OAuth callback
-  const redirectTo = !PREVIEW_HOST_PATTERN.test(url.host) 
-    ? callbackUrl 
-    : undefined;
+  if (isPreviewDeployment) {
+    return handlePreviewDeployment(callbackUrl);
+  } else {
+    return handleProductionDeployment(callbackUrl);
+  }
+}
 
+async function handleProductionDeployment(callbackUrl: string) {
   const location = await signIn("google", {
     redirect: false,
-    redirectTo,
+    redirectTo: callbackUrl,
   });
 
-  if (!location)
+  if (!location) {
     return NextResponse.json({ error: "Sign in failed" }, { status: 500 });
-
-  if (!PREVIEW_HOST_PATTERN.test(url.host)) {
-    return NextResponse.redirect(location);
   }
 
-  // For preview hosts, encode both the callback URL and CSRF token in state
+  return NextResponse.redirect(location);
+}
+
+async function handlePreviewDeployment(callbackUrl: string) {
+  // For preview deployments, don't pass redirectTo to ensure
+  // NextAuth uses NEXTAUTH_URL for the OAuth callback
+  const location = await signIn("google", {
+    redirect: false,
+    redirectTo: undefined,
+  });
+
+  if (!location) {
+    return NextResponse.json({ error: "Sign in failed" }, { status: 500 });
+  }
+
+  // Encode both the callback URL and CSRF token in state for preview hosts
   const redirectUrl = new URL(location);
   const csrfState = redirectUrl.searchParams.get("state") ?? "";
-  const state = Buffer.from(
+  
+  const encodedState = Buffer.from(
     JSON.stringify({ 
       csrfToken: csrfState, 
       callbackUrl: callbackUrl
     })
   ).toString("base64url");
-  redirectUrl.searchParams.set("state", state);
+  
+  redirectUrl.searchParams.set("state", encodedState);
 
   return NextResponse.redirect(redirectUrl);
 }
