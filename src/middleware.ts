@@ -15,7 +15,9 @@ export default auth(async (req) => {
           salt: "authjs.session-token",
         });
         return NextResponse.next();
-      } catch {}
+      } catch (error) {
+        console.error("Failed to decode session token", error);
+      }
     }
     const signInUrl = new URL(`${PRODUCTION_ORIGIN}/api/auth/signin`);
     signInUrl.searchParams.set("from", url.href);
