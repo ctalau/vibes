@@ -29,12 +29,12 @@ export default function middleware(req: NextRequest) {
     const stateParam = url.searchParams.get("state");
     if (stateParam) {
       try {
-        const { host, callbackUrl } = JSON.parse(
+        const { callbackUrl } = JSON.parse(
           Buffer.from(stateParam, "base64url").toString()
         );
-        if (host) {
+        if (callbackUrl) {
           // After successful auth, redirect to the original callback URL on the preview host
-          const redirectUrl = new URL(callbackUrl || url.origin, `https://${host}`);
+          const redirectUrl = new URL(callbackUrl);
           return NextResponse.redirect(redirectUrl.href);
         }
       } catch {}
