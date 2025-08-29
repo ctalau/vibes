@@ -32,7 +32,7 @@ async function handlePreviewDeployment(callbackUrl: string) {
   // NextAuth uses NEXTAUTH_URL for the OAuth callback
   const location = await signIn("google", {
     redirect: false,
-    redirectTo: 'https://' + PRODUCTION_HOST + '/api/auth/callback',
+    redirectTo: undefined,
   });
   console.log('google url before', location);
   if (!location) {
