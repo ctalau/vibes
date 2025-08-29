@@ -1,5 +1,16 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 
-const client = new MongoClient(process.env.MONGODB_URI!);
+let client: MongoClient | undefined;
+let db: Db | undefined;
 
-export const db = client.db();
+export async function getDb(): Promise<Db> {
+  if (db) return db;
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("MONGODB_URI is not set");
+  }
+  client = new MongoClient(uri);
+  await client.connect();
+  db = client.db();
+  return db;
+}
