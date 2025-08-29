@@ -1,12 +1,16 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { jwtVerify } from "jose";
+import { cookies, headers } from "next/headers";
+import type { NextRequest } from "next/server";
+import { PREVIEW_HOST_PATTERN } from "./config";
 
 const allowedEmails = (process.env.ALLOWED_EMAILS || "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean);
 
-export const { auth, handlers, signIn, signOut } = NextAuth({
+const nextAuth = NextAuth({
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -22,3 +26,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     },
   },
 });
+
+export const { handlers, signIn, signOut } = nextAuth;
+
+const secret = new TextEncoder().encode(process.env.AUTH_SECRET!);
+
+export async function auth(req?: NextRequest) {
+  const host = req?.nextUrl.host || headers().get("host") || "";
+  if (PREVIEW_HOST_PATTERN.test(host)) {
+    const token = req?.cookies.get("token")?.value || cookies().get("token")?.value;
+    if (!token) return null;
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      const email = payload.email as string | undefined;
+      if (!email) return null;
+      return { user: { email } };
+    } catch {
+      return null;
+    }
+  }
+  return nextAuth.auth(req as any);
+}

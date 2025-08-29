@@ -1,47 +1,48 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "./lib/auth";
-import { PREVIEW_HOST_PATTERN } from "./lib/config";
+import { PREVIEW_HOST_PATTERN, PRODUCTION_HOST } from "./lib/config";
 
-const withAuth = auth((req) => {
+export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
-  
-  // Skip auth check for auth routes
+  const host = url.host;
+  const isPreview = PREVIEW_HOST_PATTERN.test(host);
+
+  // Skip auth routes
   if (url.pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
-  
-  if (!req.auth) {
+
+  if (isPreview) {
+    // Handle incoming token param
+    const tokenParam = url.searchParams.get("token");
+    if (tokenParam) {
+      const redirectUrl = url.clone();
+      redirectUrl.searchParams.delete("token");
+      const res = NextResponse.redirect(redirectUrl);
+      res.cookies.set("token", tokenParam, {
+        httpOnly: true,
+        secure: true,
+        path: "/",
+      });
+      return res;
+    }
+
+    const session = await auth(req);
+    if (!session?.user) {
+      const redirectUrl = new URL(`https://${PRODUCTION_HOST}/me/token`);
+      redirectUrl.searchParams.set("callbackUrl", url.href);
+      return NextResponse.redirect(redirectUrl);
+    }
+    return NextResponse.next();
+  }
+
+  const session = await auth(req);
+  if (!session?.user) {
     const signInUrl = new URL("/api/auth/signin", url);
     signInUrl.searchParams.set("callbackUrl", url.href);
     return NextResponse.redirect(signInUrl);
   }
   return NextResponse.next();
-});
-
-export default function middleware(req: NextRequest) {
-  const url = req.nextUrl;
-
-  // Handle OAuth callback redirects for preview deployments
-  if (
-    !PREVIEW_HOST_PATTERN.test(url.host) &&
-    url.pathname.startsWith("/api/auth/callback")
-  ) {
-    const stateParam = url.searchParams.get("state");
-    if (stateParam) {
-      try {
-        const { callbackUrl } = JSON.parse(
-          Buffer.from(stateParam, "base64url").toString()
-        );
-        if (callbackUrl) {
-          // After successful auth, redirect to the original callback URL on the preview host
-          const redirectUrl = new URL(callbackUrl);
-          return NextResponse.redirect(redirectUrl.href);
-        }
-      } catch {}
-    }
-  }
-
-  return withAuth(req, { params: {} } as any);
 }
 
 export const config = {
