@@ -30,8 +30,7 @@ export async function GET(req: NextRequest) {
   const state = Buffer.from(
     JSON.stringify({ 
       csrfToken: csrfState, 
-      callbackUrl: callbackUrl,  // Store the original callback URL
-      host: url.host 
+      callbackUrl: callbackUrl
     })
   ).toString("base64url");
   redirectUrl.searchParams.set("state", state);
