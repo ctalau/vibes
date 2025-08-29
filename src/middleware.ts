@@ -21,6 +21,7 @@ const withAuth = auth((req) => {
 export default function middleware(req: NextRequest) {
   const url = req.nextUrl;
 
+  // Handle OAuth callback redirects for preview deployments
   if (
     !PREVIEW_HOST_PATTERN.test(url.host) &&
     url.pathname.startsWith("/api/auth/callback")
@@ -28,13 +29,13 @@ export default function middleware(req: NextRequest) {
     const stateParam = url.searchParams.get("state");
     if (stateParam) {
       try {
-        const { host } = JSON.parse(
+        const { host, callbackUrl } = JSON.parse(
           Buffer.from(stateParam, "base64url").toString()
         );
         if (host) {
-          const redirectUrl = new URL(url.href);
-          redirectUrl.host = host;
-          return NextResponse.redirect(redirectUrl);
+          // After successful auth, redirect to the original callback URL on the preview host
+          const redirectUrl = new URL(callbackUrl || url.origin, `https://${host}`);
+          return NextResponse.redirect(redirectUrl.href);
         }
       } catch {}
     }
