@@ -1,6 +1,6 @@
 import { auth } from "./lib/auth";
 import { NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { decode as decodeJwt } from "next-auth/jwt";
 import { PREVIEW_HOST_PATTERN, PRODUCTION_ORIGIN } from "./lib/config";
 
 export default auth(async (req) => {
@@ -9,7 +9,11 @@ export default auth(async (req) => {
     const token = req.cookies.get("session")?.value;
     if (token) {
       try {
-        await jwtVerify(token, new TextEncoder().encode(process.env.AUTH_SECRET!));
+        await decodeJwt({
+          token,
+          secret: process.env.AUTH_SECRET!,
+          salt: "authjs.session-token",
+        });
         return NextResponse.next();
       } catch {}
     }
