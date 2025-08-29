@@ -159,15 +159,13 @@
 
 ### Preview deployments
 
-Preview branches cannot complete the OAuth handshake directly because Google only accepts pre‑registered redirect URLs. Preview deployments use the production domain as the OAuth callback:
+Preview deployments skip Google OAuth entirely. Instead:
 
-1. A preview request without a session is redirected to its own `/api/auth/signin?callbackUrl=<previewURL>` route.
-2. The sign‑in handler starts the Google OAuth flow using the production `NEXTAUTH_URL` as the callback and embeds the preview host in the OAuth `state`.
-3. Google redirects to the production `/api/auth/callback` endpoint. Middleware on production reads the `state` and forwards the request to the preview host with the same path and query.
-4. The preview deployment receives the callback, completes the login normally, and sets its own session cookie.
-5. Subsequent preview requests present the session cookie and are authorized locally.
+1. A preview request without a session redirects the user to the production `/me/token` endpoint with a `callbackUrl` pointing back to the preview URL.
+2. The production endpoint requires an authenticated user, then signs a JWT containing the user email and redirects back to the preview with a `token` query parameter.
+3. Middleware on the preview stores the token in a cookie and authorizes subsequent requests based on it.
 
-Preview and production share `NEXTAUTH_URL` pointing to the production host and the same `AUTH_SECRET` so tokens are valid in both environments.
+Production and preview share the same `AUTH_SECRET` so the JWT issued by `/me/token` can be verified in previews.
 
 **Required env vars** (examples):
 
