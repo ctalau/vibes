@@ -163,8 +163,8 @@ Preview branches cannot complete the OAuth handshake directly because Google onl
 
 1. A preview request without a `session` cookie is redirected to the production domain’s `/api/auth/signin?from=<previewURL>`.
 2. Production’s sign‑in handler validates `from`, encodes `{csrfToken, from}` into the OAuth `state`, and continues the Google redirect.
-3. After login, production issues a JWT session and sends the user to `/auth/relay?from=<previewURL>#token=<jwt>`.
-4. The relay page forwards to the preview URL with the token in the hash. A small bootstrap script on preview branches reads `#token`, stores it as a `session` cookie, and clears the hash.
+3. After login, production issues a JWT session and sends the user to `/auth/relay?from=<previewURL>`.
+4. The relay page forwards to the preview URL with the token as `?token=<jwt>`. Preview middleware reads `token`, sets it as a `session` cookie, and redirects without it.
 5. Subsequent preview requests present the `session` cookie; middleware verifies the JWT locally using the shared `AUTH_SECRET`. Missing or invalid cookies repeat Step 1.
 6. Sign‑outs on preview redirect to `https://<prod-domain>/api/auth/signout?from=<previewURL>` so production clears its cookie before returning to the preview page.
 

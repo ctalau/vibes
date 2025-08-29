@@ -1,4 +1,5 @@
 import { auth } from "../../../lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function Relay({
   searchParams,
@@ -8,12 +9,11 @@ export default async function Relay({
   const session = await auth();
   const token = (session as any)?.jwt;
   const from = searchParams.from;
-  const redirectUrl = from && token ? `${from}#token=${token}` : undefined;
-  const script = `const from = ${JSON.stringify(
-    from || "",
-  )}; const token = ${JSON.stringify(
-    token || "",
-  )}; const redirectUrl = from && token ? from + '#token=' + token : null; document.getElementById('redirect-btn')?.addEventListener('click', function () { if (redirectUrl) { window.location.replace(redirectUrl); } });`;
+  if (from && token) {
+    const url = new URL(from);
+    url.searchParams.set("token", token);
+    redirect(url.href);
+  }
   return (
     <html>
       <body>
@@ -25,14 +25,7 @@ export default async function Relay({
           <p>
             <strong>token:</strong> {token ?? "(missing)"}
           </p>
-          <p>
-            <strong>redirect:</strong> {redirectUrl ?? "(none)"}
-          </p>
-          <button id="redirect-btn" disabled={!redirectUrl}>
-            Continue
-          </button>
         </main>
-        <script dangerouslySetInnerHTML={{ __html: script }} />
       </body>
     </html>
   );
