@@ -18,6 +18,11 @@ const nextAuth = NextAuth({
     }),
   ],
   secret: process.env.AUTH_SECRET,
+  // When `NEXTAUTH_URL` is set, NextAuth rebuilds the request via
+  // `new NextRequest()` which isn't available in some runtimes and
+  // causes "on is not a constructor" errors. Trust the incoming host
+  // header instead to avoid this rewrite.
+  trustHost: true,
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
