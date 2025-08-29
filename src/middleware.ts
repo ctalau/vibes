@@ -17,6 +17,25 @@ export default auth(async (req) => {
         return NextResponse.next();
       } catch (error) {
         console.error("Failed to decode session token", error);
+        const signInUrl = new URL(`${PRODUCTION_ORIGIN}/api/auth/signin`);
+        signInUrl.searchParams.set("from", url.href);
+        const lines = [
+          "Failed to decode session token.",
+          `Host: ${url.host}`,
+          `Path: ${url.pathname}`,
+          `Sign-in URL: ${signInUrl.href}`,
+          `Token: ${token}`,
+        ];
+        if (error instanceof Error) {
+          lines.push(`Error: ${error.message}`);
+          if (error.stack) lines.push(error.stack);
+        } else {
+          lines.push(`Error: ${String(error)}`);
+        }
+        return new NextResponse(lines.join("\n"), {
+          status: 401,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        });
       }
     }
     const signInUrl = new URL(`${PRODUCTION_ORIGIN}/api/auth/signin`);
